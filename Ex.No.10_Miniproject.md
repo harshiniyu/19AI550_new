@@ -1,7 +1,7 @@
 # Ex.No: 10  Implementation of 2D/3D game 
                                                                           
 ### REGISTER NUMBER : 212223240050
-### GAME NAME: Maze Runner  
+### GAME NAME: bird 
 ### AIM: 
 
 To develop a Unity 3D game where an AI-controlled agent uses reinforcement learning (via Unity ML-Agents) to autonomously navigate through a maze and reach a designated goal, demonstrating basic principles of artificial intelligence in games.
@@ -108,8 +108,8 @@ public class MazeAgent : Agent
 }
 ```
 ### Output:
+![WhatsApp Image 2025-11-12 at 08 19 02_77812928](https://github.com/user-attachments/assets/614b1596-90e9-4216-9e35-1767a85614e2)
 
-![image](https://github.com/user-attachments/assets/8340c190-57cf-4240-bfbc-ad55dddd5271)
 
 ### Result:
 Thus the game was developed using Unity and adopted _-----------AI technology.
