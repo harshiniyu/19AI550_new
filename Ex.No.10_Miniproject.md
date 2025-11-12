@@ -49,63 +49,135 @@ Observe the agent learning and navigating the maze.
 ```  
 ### Program:
 ```
-using Unity.MLAgents;
-using Unity.MLAgents.Actuators;
-using Unity.MLAgents.Sensors;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-public class MazeAgent : Agent
+public class Slingshot : MonoBehaviour
 {
-    public Transform target;
-    private Rigidbody agentRb;
+    public LineRenderer[] lineRenderers;
+    public Transform[] stripPositions;
+    public Transform center;
+    public Transform idlePosition;
 
-    public override void Initialize()
+    public Vector3 currentPosition;
+    public float maxLength;
+    public float bottomBoundary;
+    bool isMouseDown;
+    public GameObject birdPrefab;
+    public float birdPositionOffset;
+    Rigidbody2D bird;
+    Collider2D birdCollider;
+    public float force;
+
+    void Start()
     {
-        agentRb = GetComponent<Rigidbody>();
+        lineRenderers[0].positionCount = 2;
+        lineRenderers[1].positionCount = 2;
+        lineRenderers[0].SetPosition(0, stripPositions[0].position);
+        lineRenderers[1].SetPosition(0, stripPositions[1].position);
+        CreateBird();
     }
 
-    public override void OnEpisodeBegin()
+    void CreateBird()
     {
-        this.transform.localPosition = new Vector3(-4, 0.5f, -4);
-        agentRb.velocity = Vector3.zero;
-
-        target.localPosition = new Vector3(Random.Range(-4, 4), 0.5f, Random.Range(-4, 4));
+        bird = Instantiate(birdPrefab).GetComponent<Rigidbody2D>();
+        birdCollider = bird.GetComponent<Collider2D>();
+        birdCollider.enabled = false;
+        bird.bodyType = RigidbodyType2D.Kinematic;
+        ResetStrips();
     }
 
-    public override void CollectObservations(VectorSensor sensor)
+    void Update()
     {
-        sensor.AddObservation(this.transform.localPosition);
-        sensor.AddObservation(target.localPosition);
-        sensor.AddObservation(agentRb.velocity.x);
-        sensor.AddObservation(agentRb.velocity.z);
-    }
-
-    public override void OnActionReceived(ActionBuffers actions)
-    {
-        float moveX = actions.ContinuousActions[0];
-        float moveZ = actions.ContinuousActions[1];
-
-        Vector3 move = new Vector3(moveX, 0, moveZ);
-        agentRb.AddForce(move * 10f);
-
-        float distanceToTarget = Vector3.Distance(this.transform.localPosition, target.localPosition);
-
-        if (distanceToTarget < 1.5f)
+        if (isMouseDown)
         {
-            SetReward(1.0f);
-            EndEpisode();
-        }
+            Vector3 mousePosition = Input.mousePosition;
+            mousePosition.z = 10;
+            currentPosition = Camera.main.ScreenToWorldPoint(mousePosition);
+            currentPosition = center.position + Vector3.ClampMagnitude(currentPosition - center.position, maxLength);
+            currentPosition = ClampBoundary(currentPosition);
+            SetStrips(currentPosition);
 
-        AddReward(-0.001f);
+            if (birdCollider)
+                birdCollider.enabled = true;
+        }
+        else
+        {
+            ResetStrips();
+        }
     }
 
-    public override void Heuristic(in ActionBuffers actionsOut)
+    private void OnMouseDown() => isMouseDown = true;
+
+    private void OnMouseUp()
     {
-        var continuousActionsOut = actionsOut.ContinuousActions;
-        continuousActionsOut[0] = Input.GetAxis("Horizontal");
-        continuousActionsOut[1] = Input.GetAxis("Vertical");
+        isMouseDown = false;
+        Shoot();
+        currentPosition = idlePosition.position;
+    }
+
+    void Shoot()
+    {
+        bird.bodyType = RigidbodyType2D.Dynamic;
+        Vector3 birdForce = (currentPosition - center.position) * force * -1;
+        bird.linearVelocity = birdForce;
+
+        bird.GetComponent<Bird>().Release();
+
+        bird = null;
+        birdCollider = null;
+        Invoke("CreateBird", 2);
+    }
+
+    void ResetStrips()
+    {
+        currentPosition = idlePosition.position;
+        SetStrips(currentPosition);
+    }
+
+    void SetStrips(Vector3 position)
+    {
+        lineRenderers[0].SetPosition(1, position);
+        lineRenderers[1].SetPosition(1, position);
+
+        if (bird)
+        {
+            Vector3 dir = position - center.position;
+            bird.transform.position = position + dir.normalized * birdPositionOffset;
+            bird.transform.right = -dir.normalized;
+        }
+    }
+
+    Vector3 ClampBoundary(Vector3 vector)
+    {
+        vector.y = Mathf.Clamp(vector.y, bottomBoundary, 1000);
+        return vector;
     }
 }
+
+
+using UnityEngine;
+
+public class Bird : MonoBehaviour
+{
+    private Rigidbody2D rb;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    public void Release()
+    {
+        // This will be called from the Slingshot when you release the bird
+        // You can add extra behavior here like enabling a trail, sounds, etc.
+        Debug.Log("Bird released!");
+    }
+}
+bird.cs
+
+
 ```
 ### Output:
 ![WhatsApp Image 2025-11-12 at 08 19 02_77812928](https://github.com/user-attachments/assets/614b1596-90e9-4216-9e35-1767a85614e2)
